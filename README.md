@@ -1,2 +1,2 @@
-# VicsekSIm
-Simulation of Vicsek Model for the Bachelor Thesis
+# VicsekSim-repo
+Simulation of Vicsek Model for the Bachelor Thesis.
