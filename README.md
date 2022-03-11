@@ -18,3 +18,9 @@ Raw structure:
     + at time t = 0, N particles were randomly distributed in the cell 
     + they have the same absolute velocity varT (vartheta)
     + they have randomly distributed directions Theta 
+
+
+
+
+Questions: 
+    -can 2 particles have the same position?
