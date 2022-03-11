@@ -1,19 +1,23 @@
 """ -- Class Particle -- """
 
+import numpy as np
+
 class Particle():
     """A Particle with a vectorial position x, absolute velocity varT and a vectorial direction theta"""
 
-    def __init__(self, x, varT, theta):
+    def __init__(self, L, varT):
         """Constructor of Particle
-                Args:   x - (array) position
-                        varT - (double) absolute velocity
-                        theta - (array) direction
+                Args:   varT - (double) absolute velocity
+                        L - (int) length of the cell
                 Attr:   same as Args
-                        v - (array) velocity"""
+                        x - (array) position
+                        v - (array) velocity
+                        theta - (array) direction"""
 
-        self.x = x
+        self.x = np.array((np.random.random() * L, np.random.random() * L))
         self.varT = varT
-        self.theta = theta
+        self.theta = np.array((np.random.random() * L, np.random.random() * L))
+        self.theta = self.theta / abs(self.theta)
         self.v = self.theta * self.varT
 
     @property
