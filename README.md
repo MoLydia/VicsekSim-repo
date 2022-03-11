@@ -24,3 +24,4 @@ Raw structure:
 
 Questions: 
     -can 2 particles have the same position?
+    -Particle class: sometimes the norm is not =1 but =0.9999999 how to fix?

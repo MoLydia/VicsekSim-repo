@@ -1,5 +1,6 @@
 """ -- Class Particle -- """
 
+from turtle import clear
 import numpy as np
 
 class Particle():
@@ -16,8 +17,8 @@ class Particle():
 
         self.x = np.array((np.random.random() * L, np.random.random() * L))
         self.varT = varT
-        self.theta = np.array((np.random.random() * L, np.random.random() * L))
-        self.theta = self.theta / abs(self.theta)
+        theta = np.array((np.random.random() * L, np.random.random() * L))
+        self.theta = theta / np.linalg.norm(theta)
         self.v = self.theta * self.varT
 
     @property
@@ -30,7 +31,7 @@ class Particle():
     def theta(self, value):
         """setter of theta: the absolute value of theta has to be 1"""
 
-        if abs(value) == 1:
+        if np.linalg.norm(value) == 1:
             self._theta = value
         else: raise ValueError("The absolute value of theta has to be 1")
 
