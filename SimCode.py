@@ -1,6 +1,7 @@
 #Initialization 
 import ParticleClass as par
 import CellClass as cell
+import matplotlib.pyplot as plt
 import numpy as np
 
 def init(L, N, eta, varTB = 0.03):
@@ -33,16 +34,31 @@ def getVarray(parA):
                 vA.append(par.Particle.v)
         return np.array(vA)
 
-def update(L, parA, ts = 1):
+def update(L, parA, eta, ts = 1):
         """Updates the Simulation: calculates the new positions and velocities after one timestep"""
         for i in parA:
                 i.updateX(ts)
         for i in parA:
-                thetaR = []
+                thetaSin = []
+                thetaCos = []
+                
                 for j in parA:
                         xr = np.linalg.norm(i.x - j.x)
-                        xr = xr - L * np.rint(xr/L)
+                        xr = xr - L * np.rint(xr/L) #Boundary Conditions
                         if xr <= 1:
-                                thetaR.append([np.sin(j.theta),np.cos(j.theta)])
-                thetaR = np.array(thetaR)
-                
+                                thetaSin.append(np.sin(j.theta))
+                                thetaCos.append(np.cos(j.theta))
+                meanSin = np.array((np.mean(np.array(thetaSin)[:,[0]]),np.mean(np.array(thetaSin)[:,[0]])))
+                meanCos = np.array((np.mean(np.array(thetaCos)[:,[0]]),np.mean(np.array(thetaCos)[:,[0]])))
+                theta = np.arctan(meanSin/meanCos)
+                i.nextT = theta
+        for i in parA:
+                i.updateV(eta)
+        
+        pos = getXarray(parA)
+
+        fig, ax = plt.subplots()
+        ax.scatter(pos[:,[0]],pos[:,[1]])
+
+        plt.plot()
+

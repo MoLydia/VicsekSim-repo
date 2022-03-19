@@ -29,7 +29,9 @@ Raw structure:
 
 ### Questions: 
 1. can 2 particles have the same position?
-2. Particle class: sometimes the norm is not =1 but =0.9999999 how to fix?
+2. Particle class: sometimes the norm is not =1 but =0.9999999 how to fix? (intr?)
 3. CellClass? 
 4. kin energy
 5. forces
+6. Angle: absolute value
+7. absolute value of v
