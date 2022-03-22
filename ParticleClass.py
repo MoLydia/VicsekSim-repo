@@ -1,6 +1,5 @@
 """ -- Class Particle -- """
 
-from turtle import clear
 import numpy as np
 
 class Particle():
@@ -30,37 +29,29 @@ class Particle():
 
     @x.setter
     def x(self, value):
-        if value[0] > self.L or value[1] > self.L :
-            raise ValueError("The Particle is out of the cell")
+        if value[0] > self.L or value[1] > self.L or value[0] < 0 or value[1] < 0 :
+            raise ValueError("The Particle is out of the box")
         else:
             self._x = value
 
-    @property
-    def theta(self):
-        """Getter of theta"""
-
-        return self._theta
-
-    @theta.setter
-    def theta(self, value):
-        """setter of theta: the absolute value of theta has to be 1"""
-
-        if np.linalg.norm(value) == 1:
-            self._theta = value
-        else: raise ValueError("The absolute value of theta has to be 1")
 
     def updateX(self, ts):
         """updates the position of a particle
             Arg.:   ts - (double) timestep of the update"""
-        self.x = self.x + self.v * ts
+        x = self.x + self.v * ts
+        for i in range(2):
+            if x[i] > self.L:
+                x[i] =  x[i] - self.L
+            if x[i] < 0:
+                x[i] = x[i] + self.L
+        self.x = x
     
     def updateV(self, eta):
         """updates the velocity of a particle
             Arg.: theta - (array) vector of the mean direction of the particles within the circle"""
-        self.theta = self.nextT + np.array((np.random.uniform(-eta/2,eta/2),np.random.uniform(-eta/2,eta/2)))
+        self.theta = self.nextT + np.random.uniform(-eta/2,eta/2)
         self.v = np.array((np.cos(self.theta), np.sin(self.theta))) * self.varT
 
-        
 
 
 
