@@ -13,15 +13,14 @@ class Particle():
                 Attr:   same as Args
                         x - (array) position
                         v - (array) velocity
-                        theta - (array) direction
+                        theta - (array) angle to x axis
                         nextT - (array) the direction after the next update"""
         
         self.L = L
         self.x = np.array((np.random.random() * L, np.random.random() * L))
         self.varT = varT
-        theta = np.array((np.random.random() * L, np.random.random() * L))
-        self.theta = theta / np.linalg.norm(theta)
-        self.v = self.theta * self.varT
+        self.theta = 2 * np.pi * np.random.random()
+        self.v = np.array((np.cos(self.theta), np.sin(self.theta))) * self.varT
         self.nextT = 0
 
     @property
@@ -59,7 +58,7 @@ class Particle():
         """updates the velocity of a particle
             Arg.: theta - (array) vector of the mean direction of the particles within the circle"""
         self.theta = self.nextT + np.array((np.random.uniform(-eta/2,eta/2),np.random.uniform(-eta/2,eta/2)))
-        self.v = self.varT * self.theta
+        self.v = np.array((np.cos(self.theta), np.sin(self.theta))) * self.varT
 
         
 
