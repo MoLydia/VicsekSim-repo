@@ -4,13 +4,11 @@ import ParticleClass as par
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-from celluloid import Camera
-
 
 
 class VicsekSimulation:
 
-    def __init__(self, L, N, eta, ts, logging = False, animate = True, varTB = 0.03):
+    def __init__(self, L, N, eta, ts, varTB = 0.03):
         """initialized the particles and the cell
                 Args.:  L - (int) size of the square shaped cell
                         N - (int) particle number 
@@ -25,8 +23,14 @@ class VicsekSimulation:
         self.parA = []
         for i in range(N):
                 self.parA.append(par.Particle(L, varTB))
-        self.logging = logging
         self.animate = animate
+        self.fig = plt.figure()
+        self.ax1 = self.fig.add_subplot(1,1,1)
+        x = self.getXarray()
+        v = self.getVarray()
+        self.ax1.quiver(x[:,[0]],x[:,[1]],v[:,[0]],v[:,[1]] )
+        self.ax1.set_xlim([0,self.L])
+        self.ax1.set_ylim([0,self.L])
 
     def getXarray(self):
         """Method to get an array consisting of all the particles positions in parA 
@@ -54,11 +58,10 @@ class VicsekSimulation:
         for i in self.parA:
                 thetaSin = []
                 thetaCos = []
-                
                 for j in self.parA:
                         xr = np.linalg.norm(i.x - j.x)
                         xr = xr - self.L * np.rint(xr/self.L) #Boundary Conditions
-                        if xr <= 1:
+                        if abs(xr) <= 1:
                                 thetaSin.append(np.sin(j.theta))
                                 thetaCos.append(np.cos(j.theta))
                 
@@ -68,16 +71,19 @@ class VicsekSimulation:
                 i.updateV(self.eta)
 
 
-    def Cranimation(self):
-        self.fig = plt.figure()
-        self.ax = self.fig.add_subplot(1,1,1)
-        self.ax.set_xlim([0,self.L])
-        self.ax.set_ylim([0,self.L])
-        camera = Camera(self.fig)
-        for i in range(1000):
-            self.update()
-            x = self.getXarray()
-            plt.scatter(x[:,[0]],x[:,[1]], c = "blue")
-            camera.snap()
-        animation = camera.animate()
-        animation.save('animation.gif', fps=2)
+    def Funcupdate(self, i):
+        self.ax1.clear()
+        self.ax1.set_xlim([0,self.L])
+        self.ax1.set_ylim([0,self.L])
+
+        self.update()
+        x = self.getXarray()
+        v = self.getVarray()
+        self.ax1.quiver(x[:,[0]],x[:,[1]],v[:,[0]],v[:,[1]] )
+    
+    
+    def AnimateMatplot(self):
+        simu = animation.FuncAnimation(self.fig, self.Funcupdate, frames = np.arange(0,100), interval = 25)
+        simu.save("animation.gif", dpi = 80)
+
+    
