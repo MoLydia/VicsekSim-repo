@@ -20,7 +20,7 @@ class Particle():
         self.varT = varT
         self.theta = 2 * np.pi * np.random.random()
         self.v = np.array((np.cos(self.theta), np.sin(self.theta))) * self.varT
-        self.nextT = 0
+        self.nextT = None
 
     @property
     def x(self):
