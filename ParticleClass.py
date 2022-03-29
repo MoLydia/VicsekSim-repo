@@ -11,12 +11,14 @@ class Particle():
                         L - (int) length of the cell
                 Attr:   same as Args
                         x - (array) position
+                        xold - (array) old positions to calculate new theta
                         v - (array) velocity
                         theta - (array) angle to x axis
                         nextT - (array) the direction after the next update"""
         
         self.L = L
         self.x = np.array((np.random.random() * L, np.random.random() * L))
+        self.xold = None
         self.varT = varT
         self.theta = 2 * np.pi * np.random.random()
         self.v = np.array((np.cos(self.theta), np.sin(self.theta))) * self.varT
@@ -38,6 +40,7 @@ class Particle():
     def updateX(self, ts):
         """updates the position of a particle
             Arg.:   ts - (double) timestep of the update"""
+        self.xold = self.x
         x = self.x + self.v * ts
         for i in range(2):
             if x[i] > self.L:
