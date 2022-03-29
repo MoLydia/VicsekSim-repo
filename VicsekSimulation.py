@@ -23,7 +23,7 @@ class VicsekSimulation:
         self.parA = []
         for i in range(N):
                 self.parA.append(par.Particle(L, varTB))
-        self.animate = animate
+
         self.fig = plt.figure()
         self.ax1 = self.fig.add_subplot(1,1,1)
         x = self.getXarray()
@@ -42,48 +42,54 @@ class VicsekSimulation:
         return np.array(xA)
 
     def getVarray(self):
-        """Method to get an array consisting of all the particles velocities in parA 
-                Args.:  parA - (array) array of N particles
-                Return: vA - (array) array of the velocities"""
-        vA = []
+        """Method to get an array consisting of all the particles velocities in self.parA 
+                Return: vArray - (array) array of the velocities"""
+        vArray = []
         for p in self.parA:
-                vA.append(p.v)
-        return np.array(vA)
+                vArray.append(p.v)
+        return np.array(vArray)
 
 
     def update(self):
-        """Updates the Simulation: calculates the new positions and velocities after one timestep"""
+        """Updates the simulation: calculates the new positions and velocities after one timestep"""
         for i in self.parA:
                 i.updateX(self.ts)
         for i in self.parA:
                 thetaSin = []
                 thetaCos = []
                 for j in self.parA:
-                        xr = np.linalg.norm(i.x - j.x)
-                        xr = xr - self.L * np.rint(xr/self.L) #Boundary Conditions
-                        if abs(xr) <= 1:
+                        xr = i.xold - j.xold
+                        xr = xr - self.L/2 * np.array((int(xr[0]/(self.L/2)),int(xr[1]/(self.L/2)))) #Boundary Conditions
+                        xr = np.linalg.norm(xr)
+                        if xr <= 1:
                                 thetaSin.append(np.sin(j.theta))
                                 thetaCos.append(np.cos(j.theta))
-                
-                theta = np.arctan(np.mean(thetaSin)/ np.mean(thetaCos))
+                if np.mean(thetaCos) < 0:
+                    theta = np.arctan(np.mean(thetaSin)/ np.mean(thetaCos)) + np.pi
+                else: theta = np.arctan(np.mean(thetaSin)/ np.mean(thetaCos))
                 i.nextT = theta
         for i in self.parA:
                 i.updateV(self.eta)
 
 
     def Funcupdate(self, i):
+        """The method FuncAnimation performs for each frame"""
+        #Resetting the axes
         self.ax1.clear()
         self.ax1.set_xlim([0,self.L])
         self.ax1.set_ylim([0,self.L])
 
+        #One timestep of the simulation
         self.update()
         x = self.getXarray()
         v = self.getVarray()
+        #Plot
         self.ax1.quiver(x[:,[0]],x[:,[1]],v[:,[0]],v[:,[1]] )
     
     
-    def AnimateMatplot(self):
-        simu = animation.FuncAnimation(self.fig, self.Funcupdate, frames = np.arange(0,100), interval = 25)
+    def AnimateMatplot(self, frameMax):
+        """Produces an animation of the simulation with plt FuncAnimation"""
+        simu = animation.FuncAnimation(self.fig, self.Funcupdate, frames = np.arange(0,frameMax), interval = 25)
         simu.save("animation.gif", dpi = 80)
 
     
