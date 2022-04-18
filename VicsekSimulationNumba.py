@@ -2,6 +2,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 from numba import jit
 
 @jit
@@ -35,12 +36,13 @@ def numbaUpdateTheta(x_i, N, theta_i, L):
         thetaCos = []
         for j in range(N):
             xr = x_i[i] - x_i[j]
-            #Boundary conditions
+            #periodic boundary conditions
             xr = xr - L/2 * np.array((int(xr[0]/(L/2)),int(xr[1]/(L/2))))
-            if xr <= 1:
+            if np.linalg.norm(xr) <= 1:
                 thetaSin.append(np.sin(theta_i[j]))
                 thetaCos.append(np.cos(theta_i[j]))
-            theta_ip1[i] = np.arctan2(np.mean(thetaSin), np.mean(thetaCos))
+        theta_ip1[i] = np.arctan2(np.mean(thetaSin), np.mean(thetaCos))
+
     return theta_ip1
 
 @jit
@@ -84,5 +86,47 @@ def numbaUpdate(N, varT, L, x_i, v_i, theta_i, eta):
     v_ip1, theta_ip1 = numbaUpdateV(N, theta_ip1, varT, eta)
 
     return x_ip1, theta_ip1, v_ip1
+
+def Funcupdate(ax1, N, varT, L, x_i, v_i, theta_i, eta, i):
+    """The method FuncAnimation performs for each frame; plots the resent positions of the particles
+        Args.:  ax1 (plt.axis) - axis of the plot 
+                L (double) - length of the box
+                (i (int) - frame number; used in animation.FuncAnimation) """
+    #Resetting the axes
+    ax1.clear()
+    ax1.set_xlim([0,L])
+    ax1.set_ylim([0,L])
+
+    #One timestep of the simulation
+    x_ip1, theta_ip1, v_ip1 = numbaUpdate(N, varT, L, x_i, v_i, theta_i, eta)
+    
+    #Plot
+    ax1.quiver(x_ip1[:,[0]],x_ip1[:,[1]],v_ip1[:,[0]],v_ip1[:,[1]] )
+    
+    
+def main(N, varT, L, animate, eta, frameMax, name):
+    """Simulates the phase transition of active particles after the Vicsek model; main method"""
+
+    #Initialization
+    x_i = np.zeros((2,N))
+    theta_i = np.zeros((2,N))
+    v_i = np.zeros((2,N))
+    for i in range(N):
+        x_i[i] = np.array((np.random.random() * L, np.random.random() * L))
+        theta_i[i] = 2 * np.pi * np.random.random()
+        v_i[i] = np.array((np.cos(theta_i), np.sin(theta_i))) * varT
+
+    #Plot of the Initialization
+    fig = plt.figure()
+    ax1 = fig.add_subplot(1,1,1)
+    ax1.quiver(x_i[:,[0]],x_i[:,[1]],v_i[:,[0]],v_i[:,[1]])
+    ax1.set_xlim([0,L])
+    ax1.set_ylim([0,L])
+    plt.show()
+
+    #Animation of the Simulation if animate == True
+    if animate:
+        simu = animation.FuncAnimation(fig, Funcupdate, frames = np.arange(0,frameMax), interval = 25)
+        simu.save(name+".gif", dpi = 80)
 
 
