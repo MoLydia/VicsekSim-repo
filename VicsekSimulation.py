@@ -64,9 +64,11 @@ class VicsekSimulation:
                         if xr <= 1:
                                 thetaSin.append(np.sin(j.theta))
                                 thetaCos.append(np.cos(j.theta))
-                if np.mean(thetaCos) < 0:
-                    theta = np.arctan(np.mean(thetaSin)/ np.mean(thetaCos)) + np.pi
-                else: theta = np.arctan(np.mean(thetaSin)/ np.mean(thetaCos))
+                        xr = 0
+                #if np.mean(thetaCos) < 0:
+                 #   theta = np.arctan(np.mean(thetaSin)/ np.mean(thetaCos)) + np.pi
+                #else: theta = np.arctan(np.mean(thetaSin)/ np.mean(thetaCos))
+                theta = np.arctan2(np.mean(thetaSin), np.mean(thetaCos))
                 i.nextT = theta
         for i in self.parA:
                 i.updateV(self.eta)
