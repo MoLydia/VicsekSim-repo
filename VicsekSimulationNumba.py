@@ -102,6 +102,17 @@ def numbaUpdate(N, varT, L, x_i, v_i, theta_i, eta):
 
     return x_ip1, theta_ip1, v_ip1
 
+@njit
+def calculateVa(N, v, varT):
+    """Calculates the absolute value of the average normalized velocity v_a of the particles
+        Args.:  N (int) - number of the particles
+                v (array Nx2) - current velocities of the particles
+                varT (double) - given absolute velocity of each particle
+        Return: v_a (double) - absolute value of the average normalized velocity"""
+    sumV = np.array((np.sum(v[:,0]), np.sum(v[:,1])))
+    v_a = 1/(N * varT) * np.linalg.norm(sumV)
+    return v_a
+
 
 class Vicsek:
 
