@@ -44,7 +44,10 @@ def numbaUpdateTheta(x_i, N, theta_i, L):
         for j in range(N):
             xr = x_i[i] - x_i[j]
             #periodic boundary conditions
-            xr = xr - L/2 * np.array((int(xr[0]/(L/2)),int(xr[1]/(L/2))))
+            for k in range(2):
+                if xr[k] > L/2:
+                    xr[k] = L - xr[k]
+            #xr = xr - L/2 * np.array((int(xr[0]/(L/2)),int(xr[1]/(L/2))))
             #radius of influence set to 1
             if np.linalg.norm(xr) <= 1:
                 thetaSin.append(np.sin(theta_i[j]))
@@ -109,14 +112,38 @@ def calculateVa(N, v, varT):
                 v (array Nx2) - current velocities of the particles
                 varT (double) - given absolute velocity of each particle
         Return: v_a (double) - absolute value of the average normalized velocity"""
+    #Calculating the sum of all velocities
     sumV = np.array((np.sum(v[:,0]), np.sum(v[:,1])))
+    #Calculating v_a after the formular given in the paper
     v_a = 1/(N * varT) * np.linalg.norm(sumV)
     return v_a
 
 
+def vaOfEta(N, rho, n, steps):
+    """Calculates the absolute value of the average normalized velocity v_a of the particles in one system for different noise eta
+        Args.:  N (int) - number of particles
+                rho (double) - density of  the system; N and rho define the Length L of the box
+                n (int) - number of different noises for whose v_a will be calculated
+                steps (int) - number of timesteps; v_a of the system will be calculated afterwards
+        Return: v_a (array) - array of all v_a for different noises in the same system"""
+    #Calculation of the length of the box L 
+    L = np.sqrt( N/rho )
+    v_a = np.array(())
+    eta = np.linspace(0,5,n)
+    for i in range(n):
+        #Initialization of one System with the i-th eta
+        vi = Vicsek(N, L, eta[i], False)
+        #n timesteps of the simulation
+        for j in range(steps):
+            x_ip1, theta_ip1, v_ip1 = numbaUpdate(vi.N, vi.varT, vi.L, vi.x_i, vi.v_i, vi.theta_i, vi.eta)
+            vi.x_i, vi.theta_i, vi.v_i = x_ip1, theta_ip1, v_ip1
+        #Adding v_a after n timesteps with the noise eta[i] to the array
+        v_a = np.append(v_a, calculateVa(N, vi.v_i, vi.varT))
+    return v_a
+
 class Vicsek:
 
-    def __init__(self, N, L, eta, varT = 0.03):
+    def __init__(self, N, L, eta, plot, varT = 0.03):
         """Initialization of Vicsek
             Args.:  N (int) - number of the particles 
                     L (double) - length of the box
@@ -147,11 +174,12 @@ class Vicsek:
             self.v_i[i] = np.array((np.cos(self.theta_i[i]), np.sin(self.theta_i[i]))) * varT
 
         #Plot of the Initialization
-        self.fig = plt.figure()
-        self.ax1 = self.fig.add_subplot(1,1,1)
-        self.ax1.quiver(self.x_i[:,[0]],self.x_i[:,[1]],self.v_i[:,[0]],self.v_i[:,[1]])
-        self.ax1.set_xlim([0,L])
-        self.ax1.set_ylim([0,L])
+        if plot:
+            self.fig = plt.figure()
+            self.ax1 = self.fig.add_subplot(1,1,1)
+            self.ax1.quiver(self.x_i[:,[0]],self.x_i[:,[1]],self.v_i[:,[0]],self.v_i[:,[1]])
+            self.ax1.set_xlim([0,L])
+            self.ax1.set_ylim([0,L])
 
     def funcUpdate(self, i):
         """The method FuncAnimation performed for each frame; plots the resent positions of the particles
