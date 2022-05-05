@@ -55,6 +55,9 @@ def numbaUpdateTheta(x_i, N, theta_i, L):
         #claculation of the new angle for every particle
         thetaSin = np.mean(np.array(thetaSin))
         thetaCos = np.mean(np.array(thetaCos))
+        #if thetaCos < 0:
+        #    theta = np.arctan(thetaSin/ thetaCos) + np.pi
+        #else: theta = np.arctan(thetaSin/ thetaCos)
         theta_ip1[i] = np.arctan2(thetaSin, thetaCos)
 
     return theta_ip1
@@ -125,11 +128,13 @@ def vaOfEta(N, rho, n, steps):
                 rho (double) - density of  the system; N and rho define the Length L of the box
                 n (int) - number of different noises for whose v_a will be calculated
                 steps (int) - number of timesteps; v_a of the system will be calculated afterwards
-        Return: v_a (array) - array of all v_a for different noises in the same system"""
+        Return: v_a (array) - array of all v_a for different noises in the same system
+                eta (array) - corresponding noise eta to the v_a values"""
     #Calculation of the length of the box L 
     L = np.sqrt( N/rho )
     v_a = np.array(())
-    eta = np.linspace(0,5,n)
+    eta = np.linspace(0,2,3)
+    eta = np.append(eta, np.linspace(2.5, 5, n-3))
     for i in range(n):
         #Initialization of one System with the i-th eta
         vi = Vicsek(N, L, eta[i], False)
@@ -139,7 +144,32 @@ def vaOfEta(N, rho, n, steps):
             vi.x_i, vi.theta_i, vi.v_i = x_ip1, theta_ip1, v_ip1
         #Adding v_a after n timesteps with the noise eta[i] to the array
         v_a = np.append(v_a, calculateVa(N, vi.v_i, vi.varT))
-    return v_a
+    return v_a, eta
+
+def vaOfRho(steps, eta, n = 20, L = 20):
+    """Calculates the absolute value of the aberage normalized velocity v_a of the particles in one system for different densities rho
+        Args.:  n (int) - number of different densities for whose v_a will be calculated
+                steps (int) - number of timesteps; v_a will be calculated afterwars
+                eta (doible) - noise of the system; stays the same for all simulations
+                L (double) - Length of the box: intial value 20 (value of the paper)
+        Return: v_a (array) - array of all v_a for different densities in the same system
+                rho (array) - corresponding densities rho to the v_a values"""
+    v_a = np.array(())
+    rho = np.linspace(0,4,n-4)
+    rho = np.append(rho, np.linspace(5, 10, 4))
+    for i in range(n):
+        #Initialization of one system with the i-th rho
+        N = L**2 * rho[i]
+        vi = Vicsek(N, L, eta, False)
+        #n timesteps of the simulation 
+        for j in range(steps):
+            x_ip1, theta_ip1, v_ip1 = numbaUpdate(vi.N, vi.varT, vi.L, vi.x_i, vi.v_i, vi.theta_i, vi.eta)
+            vi.x_i, vi.theta_i, vi.v_i = x_ip1, theta_ip1, v_ip1
+        #Adding v_a after n timesteps with the density rho[i] to the array
+        v_a = np.append(v_a, calculateVa(N, vi.v_i, vi.varT))
+    return v_a, rho
+
+
 
 class Vicsek:
 
