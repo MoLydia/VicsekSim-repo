@@ -122,7 +122,7 @@ def calculateVa(N, v, varT):
     return v_a
 
 
-def vaOfEta(N, rho, n, steps):
+def vaOfEta(N, rho, n, steps, equidistant):
     """Calculates the absolute value of the average normalized velocity v_a of the particles in one system for different noise eta
         Args.:  N (int) - number of particles
                 rho (double) - density of  the system; N and rho define the Length L of the box
@@ -133,8 +133,13 @@ def vaOfEta(N, rho, n, steps):
     #Calculation of the length of the box L 
     L = np.sqrt( N/rho )
     v_a = np.array(())
-    eta = np.linspace(0,2,3)
-    eta = np.append(eta, np.linspace(2.5, 5, n-3))
+    #Creates the array of eta (equidistant or not)
+    if equidistant:
+        eta = np.linspace(0,5,n)
+    else:
+        eta = np.linspace(0,2,3)
+        eta = np.append(eta, np.linspace(2.5, 5, n-3))
+
     for i in range(n):
         #Initialization of one System with the i-th eta
         vi = Vicsek(N, L, eta[i], False)
@@ -147,7 +152,7 @@ def vaOfEta(N, rho, n, steps):
     return v_a, eta
 
 def vaOfRho(steps, eta, n = 20, L = 20):
-    """Calculates the absolute value of the aberage normalized velocity v_a of the particles in one system for different densities rho
+    """Calculates the absolute value of the average normalized velocity v_a of the particles in one system for different densities rho
         Args.:  n (int) - number of different densities for whose v_a will be calculated
                 steps (int) - number of timesteps; v_a will be calculated afterwars
                 eta (doible) - noise of the system; stays the same for all simulations
@@ -155,11 +160,11 @@ def vaOfRho(steps, eta, n = 20, L = 20):
         Return: v_a (array) - array of all v_a for different densities in the same system
                 rho (array) - corresponding densities rho to the v_a values"""
     v_a = np.array(())
-    rho = np.linspace(0,4,n-4)
-    rho = np.append(rho, np.linspace(5, 10, 4))
+    rho = np.linspace(0.1,4,n-2)
+    rho = np.append(rho, np.linspace(5, 6, 2))
     for i in range(n):
         #Initialization of one system with the i-th rho
-        N = L**2 * rho[i]
+        N = int(L**2 * rho[i])
         vi = Vicsek(N, L, eta, False)
         #n timesteps of the simulation 
         for j in range(steps):
@@ -168,6 +173,24 @@ def vaOfRho(steps, eta, n = 20, L = 20):
         #Adding v_a after n timesteps with the density rho[i] to the array
         v_a = np.append(v_a, calculateVa(N, vi.v_i, vi.varT))
     return v_a, rho
+
+def vaOfT(steps, eta, L, N):
+    """Calculates the absolute value of the average normalized velocity v_a of the particles in one system for each time step with given noise and density
+        Args.:  steps (int) - number of timesteps
+                eta (double) - noise of the system
+                L (double) - length of the box
+                N (int) - number of particles in the system
+        Return: v_a (array) -  calculated v_a's for each timestep"""
+    v_a = np.array(())
+    t = np.arange(0,steps,1)
+    vi = Vicsek(N, L, eta, False)
+    for i in range(steps):
+        v_a = np.append(v_a, calculateVa(N, vi.v_i, vi.varT))
+        x_ip1, theta_ip1, v_ip1 = numbaUpdate(vi.N, vi.varT, vi.L, vi.x_i, vi.v_i, vi.theta_i, vi.eta)
+        vi.x_i, vi.theta_i, vi.v_i = x_ip1, theta_ip1, v_ip1
+    return v_a
+
+
 
 
 
