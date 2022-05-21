@@ -221,35 +221,6 @@ def vaOfT(steps, eta, L, N):
         vi.x_i, vi.theta_i, vi.v_i = x_ip1, theta_ip1, v_ip1
     return v_a
 
-def GetDataVaOfEta(N, nRep, timesteps, equidistant, nNoise):
-    
-    #Given values from the paper
-    rho = 4
-    v_a = np.zeros(nNoise)
-    #First Simulation
-    v_ai, eta = vaOfEta(N,rho,nNoise,timesteps,equidistant)
-    #Loop over the number of Repetitions (nRep) for the simulation of one system
-    for j in range(nRep-1):
-        v_ai = np.vstack((v_ai,vaOfEta(N,rho,nNoise,timesteps,equidistant)[0]))
-    #Appending the mean of the nRep-times calculated v_a
-    v_a = np.vstack((v_a, np.mean(v_ai,0)))
-
-    #Saving data in csv
-    dict = {'v_a': v_a, 'eta' : eta}
-    df = pd.DataFrame(dict)
-    df.to_csv(f"vaOfEta"+N+"calculated.csv")
-    
-    #Plot of the data
-    fig = plt.figure()
-    ax = fig.add_subplot(1,1,1)
-    ax.set_xlim([0,5])
-    ax.set_ylim([0,1])
-    ax.set_ylabel("v_a")
-    ax.set_xlabel("eta")
-    ax.scatter(eta, v_a[i+1,:], label =N)
-    plt.show()
-    return eta, v_a
-
 
 
 class Vicsek:
