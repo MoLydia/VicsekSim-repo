@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from numba import njit
+import pandas as pd
 
 @njit
 def numbaUpdateX(N, x_i, v_i, L):
@@ -122,12 +123,14 @@ def calculateVa(N, v, varT):
     return v_a
 
 
-def vaOfEta(N, rho, n, steps, equidistant):
+def vaOfEta(N, rho, nNoise, steps, reps, equidistant):
     """Calculates the absolute value of the average normalized velocity v_a of the particles in one system for different noise eta
         Args.:  N (int) - number of particles
                 rho (double) - density of  the system; N and rho define the Length L of the box
-                n (int) - number of different noises for whose v_a will be calculated
+                nNoise (int) - number of different noises for whose v_a will be calculated
                 steps (int) - number of timesteps; v_a of the system will be calculated afterwards
+                reps (int) - number of repetitions for a single eta
+                equidistant (boolean) - sets if array eta has equidistant steps or not
         Return: v_a (array) - array of all v_a for different noises in the same system
                 eta (array) - corresponding noise eta to the v_a values"""
     #Calculation of the length of the box L 
@@ -135,20 +138,48 @@ def vaOfEta(N, rho, n, steps, equidistant):
     v_a = np.array(())
     #Creates the array of eta (equidistant or not)
     if equidistant:
-        eta = np.linspace(0,5,n)
+        eta = np.linspace(0,5,nNoise)
     else:
         eta = np.linspace(0,2,3)
-        eta = np.append(eta, np.linspace(2.5, 5, n-3))
+        eta = np.append(eta, np.linspace(2.5, 5, nNoise-3))
 
-    for i in range(n):
-        #Initialization of one System with the i-th eta
-        vi = Vicsek(N, L, eta[i], False)
-        #n timesteps of the simulation
-        for j in range(steps):
-            x_ip1, theta_ip1, v_ip1 = numbaUpdate(vi.N, vi.varT, vi.L, vi.x_i, vi.v_i, vi.theta_i, vi.eta)
-            vi.x_i, vi.theta_i, vi.v_i = x_ip1, theta_ip1, v_ip1
-        #Adding v_a after n timesteps with the noise eta[i] to the array
-        v_a = np.append(v_a, calculateVa(N, vi.v_i, vi.varT))
+    
+    for i in range(nNoise):
+        v_aNoise = np.array(())
+        for k in range(reps):
+            v_aReps = np.array(())
+            #Initialization of one System with the i-th eta
+            vi = Vicsek(N, L, eta[i], False)
+            #n timesteps of the simulation
+            for j in range(100):
+                x_ip1, theta_ip1, v_ip1 = numbaUpdate(vi.N, vi.varT, vi.L, vi.x_i, vi.v_i, vi.theta_i, vi.eta)
+                vi.x_i, vi.theta_i, vi.v_i = x_ip1, theta_ip1, v_ip1
+            #After 100 ts v_a is calculated after every ts 
+            for j in range(steps - 100):
+                x_ip1, theta_ip1, v_ip1 = numbaUpdate(vi.N, vi.varT, vi.L, vi.x_i, vi.v_i, vi.theta_i, vi.eta)
+                vi.x_i, vi.theta_i, vi.v_i = x_ip1, theta_ip1, v_ip1
+                v_aReps = np.append(v_aReps, calculateVa(N, vi.v_i, vi.varT))
+        
+            #Adding the mean of the calculated v_a 
+            v_aNoise = np.append(v_aNoise, np.mean(v_aReps))
+        v_a = np.append(v_a, np.mean(v_aNoise) )
+
+
+    #Saving data in csv
+    dict = {'v_a': v_a, 'eta' : eta}
+    df = pd.DataFrame(dict)
+    df.to_csv(f"vaOfEta"+str(N)+"calculated.csv")
+    
+    #Plot of the data
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.set_xlim([0,5])
+    ax.set_ylim([0,1])
+    ax.set_ylabel("v_a")
+    ax.set_xlabel("eta")
+    ax.scatter(eta, v_a, label =N)
+    plt.show()
+
     return v_a, eta
 
 def vaOfRho(steps, eta, n = 20, L = 20):
@@ -190,7 +221,34 @@ def vaOfT(steps, eta, L, N):
         vi.x_i, vi.theta_i, vi.v_i = x_ip1, theta_ip1, v_ip1
     return v_a
 
+def GetDataVaOfEta(N, nRep, timesteps, equidistant, nNoise):
+    
+    #Given values from the paper
+    rho = 4
+    v_a = np.zeros(nNoise)
+    #First Simulation
+    v_ai, eta = vaOfEta(N,rho,nNoise,timesteps,equidistant)
+    #Loop over the number of Repetitions (nRep) for the simulation of one system
+    for j in range(nRep-1):
+        v_ai = np.vstack((v_ai,vaOfEta(N,rho,nNoise,timesteps,equidistant)[0]))
+    #Appending the mean of the nRep-times calculated v_a
+    v_a = np.vstack((v_a, np.mean(v_ai,0)))
 
+    #Saving data in csv
+    dict = {'v_a': v_a, 'eta' : eta}
+    df = pd.DataFrame(dict)
+    df.to_csv(f"vaOfEta"+N+"calculated.csv")
+    
+    #Plot of the data
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.set_xlim([0,5])
+    ax.set_ylim([0,1])
+    ax.set_ylabel("v_a")
+    ax.set_xlabel("eta")
+    ax.scatter(eta, v_a[i+1,:], label =N)
+    plt.show()
+    return eta, v_a
 
 
 
