@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from numba import njit
 import pandas as pd
+from matplotlib import cm
+from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 
 @njit
 def numbaUpdateX(N, x_i, v_i, L):
@@ -45,10 +47,16 @@ def numbaUpdateTheta(x_i, N, theta_i, L):
         for j in range(N):
             xr = x_i[i] - x_i[j]
             #periodic boundary conditions
-            for k in range(2):
-                if xr[k] > L/2:
-                    xr[k] = L - xr[k]
+            xr = xr - L * np.rint(xr/L)
+
+            #for k in range(2):
+                #if xr[k] > L/2:
+                 #   xr[k] = xr[k] - L 
+                #elif xr[k] < -L/2:
+                #    xr[k] = xr[k] + L 
+                    
             #xr = xr - L/2 * np.array((int(xr[0]/(L/2)),int(xr[1]/(L/2))))
+
             #radius of influence set to 1
             if np.linalg.norm(xr) <= 1:
                 thetaSin.append(np.sin(theta_i[j]))
@@ -123,7 +131,7 @@ def calculateVa(N, v, varT):
     return v_a
 
 
-def vaOfEta(N, rho, nNoise, steps, reps, equidistant):
+def vaOfEta(N, L, nNoise, steps, reps, equidistant):
     """Calculates the absolute value of the average normalized velocity v_a of the particles in one system for different noise eta
         Args.:  N (int) - number of particles
                 rho (double) - density of  the system; N and rho define the Length L of the box
@@ -134,7 +142,7 @@ def vaOfEta(N, rho, nNoise, steps, reps, equidistant):
         Return: v_a (array) - array of all v_a for different noises in the same system
                 eta (array) - corresponding noise eta to the v_a values"""
     #Calculation of the length of the box L 
-    L = np.sqrt( N/rho )
+    #L = np.sqrt( N/rho )
     v_a = np.array(())
     #Creates the array of eta (equidistant or not)
     if equidistant:
@@ -152,7 +160,7 @@ def vaOfEta(N, rho, nNoise, steps, reps, equidistant):
             vi = Vicsek(N, L, eta[i], False)
             #n timesteps of the simulation
             for j in range(100):
-                x_ip1, theta_ip1, v_ip1 = numbaUpdate(vi.N, vi.varT, vi.L, vi.x_i, vi.v_i, vi.theta_i, vi.eta)
+                x_ip1, theta_ip1, v_ip1 = numbaUpdate(vi.N, vi.varT, L, vi.x_i, vi.v_i, vi.theta_i, vi.eta)
                 vi.x_i, vi.theta_i, vi.v_i = x_ip1, theta_ip1, v_ip1
             #After 100 ts v_a is calculated after every ts 
             for j in range(steps - 100):
@@ -162,7 +170,7 @@ def vaOfEta(N, rho, nNoise, steps, reps, equidistant):
         
             #Adding the mean of the calculated v_a 
             v_aNoise = np.append(v_aNoise, np.mean(v_aReps))
-        v_a = np.append(v_a, np.mean(v_aNoise) )
+        v_a = np.append(v_a, np.mean(v_aNoise))
 
 
     #Saving data in csv
@@ -182,7 +190,7 @@ def vaOfEta(N, rho, nNoise, steps, reps, equidistant):
 
     return v_a, eta
 
-def vaOfRho(steps, eta, n = 20, L = 20):
+def vaOfRho(steps, eta, reps, all, nDensity = 18, L = 20):
     """Calculates the absolute value of the average normalized velocity v_a of the particles in one system for different densities rho
         Args.:  n (int) - number of different densities for whose v_a will be calculated
                 steps (int) - number of timesteps; v_a will be calculated afterwars
@@ -191,18 +199,49 @@ def vaOfRho(steps, eta, n = 20, L = 20):
         Return: v_a (array) - array of all v_a for different densities in the same system
                 rho (array) - corresponding densities rho to the v_a values"""
     v_a = np.array(())
-    rho = np.linspace(0.1,4,n-2)
-    rho = np.append(rho, np.linspace(5, 6, 2))
-    for i in range(n):
-        #Initialization of one system with the i-th rho
+
+    #Init the different values for rho eta is calculated for 
+    rho = np.linspace(0.1,4,nDensity-4)
+    if all:
+        rho = np.append(rho, np.array((5,6.5,8,9.5)))
+
+    for i in range(len(rho)):
+        print(i)
         N = int(L**2 * rho[i])
-        vi = Vicsek(N, L, eta, False)
-        #n timesteps of the simulation 
-        for j in range(steps):
-            x_ip1, theta_ip1, v_ip1 = numbaUpdate(vi.N, vi.varT, vi.L, vi.x_i, vi.v_i, vi.theta_i, vi.eta)
-            vi.x_i, vi.theta_i, vi.v_i = x_ip1, theta_ip1, v_ip1
-        #Adding v_a after n timesteps with the density rho[i] to the array
-        v_a = np.append(v_a, calculateVa(N, vi.v_i, vi.varT))
+        v_aDensity = np.array(())
+        for k in range(reps):
+            v_aReps = np.array(())
+            #Initialization of one System with the i-th rho
+            vi = Vicsek(N, L, eta, False)
+            #n timesteps of the simulation
+            for j in range(100):
+                x_ip1, theta_ip1, v_ip1 = numbaUpdate(vi.N, vi.varT, L, vi.x_i, vi.v_i, vi.theta_i, vi.eta)
+                vi.x_i, vi.theta_i, vi.v_i = x_ip1, theta_ip1, v_ip1
+            #After 100 ts v_a is calculated after every ts 
+            for j in range(steps - 100):
+                x_ip1, theta_ip1, v_ip1 = numbaUpdate(vi.N, vi.varT, vi.L, vi.x_i, vi.v_i, vi.theta_i, vi.eta)
+                vi.x_i, vi.theta_i, vi.v_i = x_ip1, theta_ip1, v_ip1
+                v_aReps = np.append(v_aReps, calculateVa(N, vi.v_i, vi.varT))
+        
+            #Adding the mean of the calculated v_a 
+            v_aDensity = np.append(v_aDensity, np.mean(v_aReps))
+        v_a = np.append(v_a, np.mean(v_aDensity))
+
+    #Saving data in csv
+    dict = {'v_a': v_a, 'rho' : rho}
+    df = pd.DataFrame(dict)
+    df.to_csv(f"vaOfRho"+str(eta)+"calculated.csv")
+    
+    #Plot of the data
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.set_xlim([0,10])
+    ax.set_ylim([0,0.8])
+    ax.set_ylabel("v_a")
+    ax.set_xlabel("rho")
+    ax.scatter(rho, v_a, label =eta)
+    plt.show()
+
     return v_a, rho
 
 def vaOfT(steps, eta, L, N):
@@ -220,6 +259,9 @@ def vaOfT(steps, eta, L, N):
         x_ip1, theta_ip1, v_ip1 = numbaUpdate(vi.N, vi.varT, vi.L, vi.x_i, vi.v_i, vi.theta_i, vi.eta)
         vi.x_i, vi.theta_i, vi.v_i = x_ip1, theta_ip1, v_ip1
     return v_a
+
+def vaForBeta(etaFix, equidistant, nNoise, reps, steps):
+    pass
 
 
 
@@ -259,7 +301,7 @@ class Vicsek:
         if plot:
             self.fig = plt.figure()
             self.ax1 = self.fig.add_subplot(1,1,1)
-            self.ax1.quiver(self.x_i[:,[0]],self.x_i[:,[1]],self.v_i[:,[0]],self.v_i[:,[1]])
+            self.ax1.quiver(self.x_i[:,[0]],self.x_i[:,[1]],self.v_i[:,[0]],self.v_i[:,[1]], color = cm.get_cmap('viridis')(self.theta_i/(2*np.pi)))
             self.ax1.set_xlim([0,L])
             self.ax1.set_ylim([0,L])
 
@@ -276,7 +318,8 @@ class Vicsek:
         #print(np.linalg.norm(self.x_i-x_ip1))
         self.x_i, self.theta_i, self.v_i = x_ip1, theta_ip1, v_ip1
         #Plot
-        self.ax1.quiver(self.x_i[:,[0]],self.x_i[:,[1]],self.v_i[:,[0]],self.v_i[:,[1]])
+        self.theta_i = np.where(self.theta_i > 0, self.theta_i, self.theta_i + 2*np.pi)
+        self.ax1.quiver(self.x_i[:,[0]],self.x_i[:,[1]],self.v_i[:,[0]],self.v_i[:,[1]], color = cm.get_cmap('viridis')(self.theta_i/(2*np.pi)))
         
 
     def animate(self, maxFrames, name):
