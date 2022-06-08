@@ -134,7 +134,7 @@ def calculateVa(N, v, varT):
 def vaOfEta(N, L, nNoise, steps, reps, equidistant):
     """Calculates the absolute value of the average normalized velocity v_a of the particles in one system for different noise eta
         Args.:  N (int) - number of particles
-                rho (double) - density of  the system; N and rho define the Length L of the box
+                rho (double) or L (int) - density of  the system; N and rho define the Length L of the box or Length of the box L
                 nNoise (int) - number of different noises for whose v_a will be calculated
                 steps (int) - number of timesteps; v_a of the system will be calculated afterwards
                 reps (int) - number of repetitions for a single eta
