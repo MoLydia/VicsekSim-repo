@@ -131,7 +131,7 @@ def calculateVa(N, v, varT):
     return v_a
 
 
-def vaOfEta(N, L, nNoise, steps, reps, equidistant):
+def vaOfEta(N, rho, nNoise, steps, reps, equidistant):
     """Calculates the absolute value of the average normalized velocity v_a of the particles in one system for different noise eta
         Args.:  N (int) - number of particles
                 rho (double) or L (int) - density of  the system; N and rho define the Length L of the box or Length of the box L
@@ -142,7 +142,7 @@ def vaOfEta(N, L, nNoise, steps, reps, equidistant):
         Return: v_a (array) - array of all v_a for different noises in the same system
                 eta (array) - corresponding noise eta to the v_a values"""
     #Calculation of the length of the box L 
-    #L = np.sqrt( N/rho )
+    L = np.sqrt( N/rho )
     v_a = np.array(())
     #Creates the array of eta (equidistant or not)
     if equidistant:
