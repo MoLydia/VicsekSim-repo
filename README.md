@@ -1,30 +1,24 @@
 # VicsekSim-repo
-Simulation of Vicsek Model for the Bachelor Thesis.
-Structure of the code based on "Understanding Molecular Simulation" by Daan Frenkel and Berend Smit chapter 4.
-Raw structure:
-1. Initialization
-2. Loop 
-- Determine Forces 
-- Integrate equations of motion (vicsek formular)
-- sample averages (plot)
-
-## Initialization (from the paper)
-1. square shaped cell of linear size L
-2. periodic boundary conditions (-> loop)
-3. interaction radius r as the unit to measure distances (r = 1) (-> loop)
-4. time unit dt = 1 (-> loop)
-5. initial conditions:
-    + at time t = 0, N particles were randomly distributed in the cell 
-    + they have the same absolute velocity varT (vartheta)
-    + they have randomly distributed directions Theta 
-
-## Loop for a timestep dt (ts)
-1. update the position of every particle -> boundary conditions
-2. for i-th particle
-    + calculate the sin and cos of every particle in the circle  -> boundary conditions
-    + calculate mean of the directions
-    + update direction for i-th particle
-5. plot 
 
 
-### Questions: 
+##Examples
+
+###To Run a simulation: 
+
+import VicsekSimulationNumba as vi
+
+v = vi.Viscek(300, 25, 0.1, True) \\this gives a plot of the initial conditions
+
+v.animate(400, 'name') \\this creates an animation and saves it in the directory
+
+###To compute the graphs: 
+
+import VicsekSimulationNumba as vi
+
+vi.vaOfRho(500, 0.1, 10, False)
+
+vi.vaOfEta(40, 25, 20, 500, 100, True)
+
+vi.vaOfT(2000, 0.5, 25, 300)
+
+
