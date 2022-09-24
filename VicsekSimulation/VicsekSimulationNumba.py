@@ -26,10 +26,6 @@ def numbaUpdateX(N, x_i, v_i, L):
     for i in range(N):
         for j in range(2):
             x_ip1[i,j] = x_ip1[i,j] - L*(x_ip1[i,j]//L)
-            #if x_ip1[i,j] > L:
-            #    x_ip1[i,j] = x_ip1[i,j] - L*(x//L)
-            #if x_ip1[i,j] < 0:
-            #    x_ip1[i,j] = x_ip1[i,j] + L*(x//L)
 
     return x_ip1
 
@@ -43,32 +39,21 @@ def numbaUpdateTheta(x_i, N, theta_i, L):
         Return: theta_ip1 (array 1xN) - angles of the particles at the timestep i+1 without noise"""
     theta_ip1 = np.zeros(N)
     for i in range(N):
-        thetaSin = []
-        thetaCos = []
+        thetaSin = np.zeros(N)
+        thetaCos = np.zeros(N)
+        count = 0
         for j in range(N):
             xr = x_i[i] - x_i[j]
             #periodic boundary conditions
             xr = xr - L * np.rint(xr/L)
 
-            #for k in range(2):
-                #if xr[k] > L/2:
-                 #   xr[k] = xr[k] - L 
-                #elif xr[k] < -L/2:
-                #    xr[k] = xr[k] + L 
-                    
-            #xr = xr - L/2 * np.array((int(xr[0]/(L/2)),int(xr[1]/(L/2))))
-
             #radius of influence set to 1
             if xr[0]**2 + xr[1]**2 <= 1:
-                thetaSin.append(np.sin(theta_i[j]))
-                thetaCos.append(np.cos(theta_i[j]))
+                thetaSin[count] = np.sin(theta_i[j])
+                thetaCos[count] = np.cos(theta_i[j])
+                count+=1
         #claculation of the new angle for every particle
-        thetaSin = np.mean(np.array(thetaSin))
-        thetaCos = np.mean(np.array(thetaCos))
-        #if thetaCos < 0:
-        #    theta = np.arctan(thetaSin/ thetaCos) + np.pi
-        #else: theta = np.arctan(thetaSin/ thetaCos)
-        theta_ip1[i] = np.arctan2(thetaSin, thetaCos)
+        theta_ip1[i] = np.arctan2(np.mean(thetaSin[:count]), np.mean(thetaCos[:count]))
 
     return theta_ip1
 
@@ -132,52 +117,50 @@ def calculateVa(N, v, varT):
     return v_a
 
 
-def vaOfEta(N, rho, nNoise, steps, reps, equidistant):
+def vaOfEta(N, rho, nNoise, noiseMax, start, tau, reps):
     """Calculates the absolute value of the average normalized velocity v_a of the particles in one system for different noise eta
         Args.:  N (int) - number of particles
                 rho (double) or L (int) - density of  the system; N and rho define the Length L of the box or Length of the box L
                 nNoise (int) - number of different noises for whose v_a will be calculated
                 steps (int) - number of timesteps; v_a of the system will be calculated afterwards
                 reps (int) - number of repetitions for a single eta
-                equidistant (boolean) - sets if array eta has equidistant steps or not
         Return: v_a (array) - array of all v_a for different noises in the same system
                 eta (array) - corresponding noise eta to the v_a values"""
     #Calculation of the length of the box L 
     L = np.sqrt( N/rho )
     v_a = np.zeros(nNoise)
-    #Creates the array of eta (equidistant or not)
-    if equidistant:
-        eta = np.linspace(0,6,nNoise)
-    else:
-        eta = np.linspace(0,2,3)
-        eta = np.append(eta, np.linspace(2.5, 5, nNoise-3))
-
+    #Creates the array of eta 
+    eta = np.linspace(0,noiseMax,nNoise)
+    error = np.zeros(nNoise)
     
     for i in range(nNoise):
         v_aNoise = np.zeros(reps)
+        errorReps = np.zeros(reps)
         for k in range(reps):
-            v_aReps = np.zeros(steps - 100)
+            v_aReps = np.zeros(tau*10)
             #Initialization of one System with the i-th eta
             vi = Vicsek(N, L, eta[i], False)
             #n timesteps of the simulation
-            for j in range(100):
+            for j in range(start):
                 x_ip1, theta_ip1, v_ip1 = numbaUpdate(vi.N, vi.varT, L, vi.x_i, vi.v_i, vi.theta_i, vi.eta)
                 vi.x_i, vi.theta_i, vi.v_i = x_ip1, theta_ip1, v_ip1
-            #After 100 ts v_a is calculated after every ts 
-            for j in range(steps - 100):
+            #After start ts v_a is calculated after every ts 
+            for j in range(tau*10):
                 x_ip1, theta_ip1, v_ip1 = numbaUpdate(vi.N, vi.varT, vi.L, vi.x_i, vi.v_i, vi.theta_i, vi.eta)
                 vi.x_i, vi.theta_i, vi.v_i = x_ip1, theta_ip1, v_ip1
                 v_aReps[j] = calculateVa(N, vi.v_i, vi.varT)
-        
+
             #Adding the mean of the calculated v_a 
+            errorReps[k] = np.sqrt((np.mean(v_aReps[::tau]**2)-np.mean(v_aReps[::tau])**2)/(10-1))
             v_aNoise[k] = np.mean(v_aReps)
+        error[i] = np.sqrt(np.sum(errorReps**2))/reps
         v_a[i] = np.mean(v_aNoise)
 
 
     #Saving data in csv
-    dict = {'v_a': v_a, 'eta' : eta}
+    dict = {'v_a': v_a, 'eta' : eta, 'error' : error}
     df = pd.DataFrame(dict)
-    df.to_csv(f"vaOfEta"+str(N)+"calculatedRho"+str(rho*10)+".csv")
+    df.to_csv(f"vaOfEta"+str(N)+"calculatedRho"+str(rho*10)+"WithErrors.csv")
     
     #Plot of the data
     fig = plt.figure()
@@ -186,12 +169,12 @@ def vaOfEta(N, rho, nNoise, steps, reps, equidistant):
     ax.set_ylim([0,1])
     ax.set_ylabel("v_a")
     ax.set_xlabel("eta")
-    ax.scatter(eta, v_a, label =N)
+    ax.errorbar(eta, v_a, yerr = error, label =N, fmt = '.', ecolor = 'red')
     plt.show()
 
-    return v_a, eta
+    #return v_a, eta
 
-def vaOfRho(steps, eta, reps, single, val, L = 20):
+def vaOfRho(tau, eta, reps, single, val, start, L = 20):
     """Calculates the absolute value of the average normalized velocity v_a of the particles in one system for different densities rho
         Args.:  n (int) - number of different densities for whose v_a will be calculated
                 steps (int) - number of timesteps; v_a will be calculated afterwars
@@ -208,41 +191,44 @@ def vaOfRho(steps, eta, reps, single, val, L = 20):
         rho = np.linspace(0.1,1.3,7)
         rho = np.append(rho, np.linspace(1.4,3.1,8))
     
-
     v_a = np.zeros(len(rho))
+    error = np.zeros(len(rho))
 
     for i in range(len(rho)):
-        print(i)
         N = int(L**2 * rho[i])
         v_aDensity = np.zeros(reps)
+        errorReps = np.zeros(reps)
         for k in range(reps):
-            v_aReps = np.zeros(steps - 100)
+            v_aReps = np.zeros(tau*10)
             #Initialization of one System with the i-th rho
             vi = Vicsek(N, L, eta, False)
             #n timesteps of the simulation
-            for j in range(100):
+            for j in range(start):
                 x_ip1, theta_ip1, v_ip1 = numbaUpdate(vi.N, vi.varT, L, vi.x_i, vi.v_i, vi.theta_i, vi.eta)
                 vi.x_i, vi.theta_i, vi.v_i = x_ip1, theta_ip1, v_ip1
-            #After 100 ts v_a is calculated after every ts 
-            for j in range(steps - 100):
+            #After start ts v_a is calculated after every ts 
+            for j in range(tau*10):
                 x_ip1, theta_ip1, v_ip1 = numbaUpdate(vi.N, vi.varT, vi.L, vi.x_i, vi.v_i, vi.theta_i, vi.eta)
                 vi.x_i, vi.theta_i, vi.v_i = x_ip1, theta_ip1, v_ip1
                 v_aReps[j] = calculateVa(N, vi.v_i, vi.varT)
         
             #Adding the mean of the calculated v_a 
+            errorReps[k] = np.sqrt((np.mean(v_aReps[::tau]**2)-np.mean(v_aReps[::tau])**2)/(10-1))
             v_aDensity[k] = np.mean(v_aReps)
         v_a[i] = np.mean(v_aDensity)
+        error[i] = np.sqrt(np.sum(errorReps**2))/reps
+        print(i)
 
     #Saving data in csv
     if single:
-        dict = {'v_a': v_a, 'rho' : rho}
+        dict = {'v_a': v_a, 'rho' : rho, 'error': error}
         df = pd.DataFrame(dict)
-        df.to_csv(f"vaOfRho"+str(eta)+"SingleCalculated"+str(val)+".csv")
+        df.to_csv(f"vaOfRho"+str(eta)+"SingleCalculated"+str(val)+"WithError.csv")
 
     else: 
-        dict = {'v_a': v_a, 'rho' : rho}
+        dict = {'v_a': v_a, 'rho' : rho, 'error': error}
         df = pd.DataFrame(dict)
-        df.to_csv(f"vaOfRho"+str(eta)+"calculated.csv")
+        df.to_csv(f"vaOfRho"+str(eta)+"calculatedWithError.csv")
     
     #Plot of the data
     fig = plt.figure()
@@ -251,12 +237,12 @@ def vaOfRho(steps, eta, reps, single, val, L = 20):
     ax.set_ylim([0,0.8])
     ax.set_ylabel("v_a")
     ax.set_xlabel("rho")
-    ax.scatter(rho, v_a, label =eta)
+    ax.errorbar(rho, v_a, label =eta, yerr = error, fmt = '.', ecolor = 'red')
     plt.show()
 
     return v_a, rho
 
-def vaOfT(steps, eta, L, N):
+def vaOfT(steps, eta, L, N, name):
     """Calculates the absolute value of the average normalized velocity v_a of the particles in one system for each time step with given noise and density
         Args.:  steps (int) - number of timesteps
                 eta (double) - noise of the system
@@ -266,14 +252,17 @@ def vaOfT(steps, eta, L, N):
     v_a = np.zeros(steps)
     t = np.arange(0,steps,1)
     vi = Vicsek(N, L, eta, False)   
+    rho = N/L**2
     for i in range(steps):
         v_a[i] =  calculateVa(N, vi.v_i, vi.varT)
         x_ip1, theta_ip1, v_ip1 = numbaUpdate(vi.N, vi.varT, vi.L, vi.x_i, vi.v_i, vi.theta_i, vi.eta)
         vi.x_i, vi.theta_i, vi.v_i = x_ip1, theta_ip1, v_ip1
-    return v_a
 
-def vaForBeta(etaFix, equidistant, nNoise, reps, steps):
-    pass
+    dict = {'v_a(t)': v_a}
+    df = pd.DataFrame(dict)
+    df.to_csv(f"vaOfT"+name+".csv")
+
+    return v_a
 
 
 
