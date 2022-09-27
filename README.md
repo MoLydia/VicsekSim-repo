@@ -1,6 +1,11 @@
 # VicsekSim-repo
 
 
+The full Code to run the simulations is in VicsekSimulationNumba.py.
+The used Data for the thesis is in the directory Data. 
+The jupyter notebooks were used to produce the plots.
+
+
 ## Examples
 
 ### To Run a simulation: 
@@ -15,10 +20,10 @@ v.animate(400, 'name') \\this creates an animation and saves it in the directory
 
 import VicsekSimulationNumba as vi
 
-vi.vaOfRho(500, 0.1, 10, False)
+vi.vaOfRho(20, 2, 15, False, 100)
 
-vi.vaOfEta(40, 25, 20, 500, 100, True)
+vi.vaOfEta(40, 4, 20, 5, 100, 20, 10)
 
-vi.vaOfT(2000, 0.5, 25, 300)
+v_a = vi.vaOfT(2000,2,20,40,'DiffN40N')
 
 
