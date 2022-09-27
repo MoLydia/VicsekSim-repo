@@ -122,7 +122,9 @@ def vaOfEta(N, rho, nNoise, noiseMax, start, tau, reps):
         Args.:  N (int) - number of particles
                 rho (double) or L (int) - density of  the system; N and rho define the Length L of the box or Length of the box L
                 nNoise (int) - number of different noises for whose v_a will be calculated
-                steps (int) - number of timesteps; v_a of the system will be calculated afterwards
+                noiseMax (int) - value up to which v_as will be calculated
+                start (int) - number of timesteps v_a of the system will be calculated afterwards
+                tau (int) - number of time steps between two v_a values used to calculate the error 
                 reps (int) - number of repetitions for a single eta
         Return: v_a (array) - array of all v_a for different noises in the same system
                 eta (array) - corresponding noise eta to the v_a values"""
@@ -174,11 +176,14 @@ def vaOfEta(N, rho, nNoise, noiseMax, start, tau, reps):
 
     #return v_a, eta
 
-def vaOfRho(tau, eta, reps, single, val, start, L = 20):
+def vaOfRho(tau, eta, reps, single, start, val = 0, L = 20):
     """Calculates the absolute value of the average normalized velocity v_a of the particles in one system for different densities rho
-        Args.:  n (int) - number of different densities for whose v_a will be calculated
-                steps (int) - number of timesteps; v_a will be calculated afterwars
+        Args.:  tau (int) - number of time steps in between two values of v_a to calculate the error
                 eta (doible) - noise of the system; stays the same for all simulations
+                reps (int) - number of repetitions done for each value of v_a
+                single (boolean) - False if the there are more than values to be calculated
+                val (double) - value to be calculated if single is True (default val = 0)
+                start (int) - number of time steps after whose v_a is calculated
                 L (double) - Length of the box: intial value 20 (value of the paper)
         Return: v_a (array) - array of all v_a for different densities in the same system
                 rho (array) - corresponding densities rho to the v_a values"""
@@ -188,8 +193,8 @@ def vaOfRho(tau, eta, reps, single, val, start, L = 20):
     if single: 
         rho = np.array([val])
     else:
-        rho = np.linspace(0.1,1.3,7)
-        rho = np.append(rho, np.linspace(1.4,3.1,8))
+        #rho = np.linspace(0.1,1.3,7)
+        rho = np.linspace(1.4,3.1,8)
     
     v_a = np.zeros(len(rho))
     error = np.zeros(len(rho))
@@ -199,7 +204,7 @@ def vaOfRho(tau, eta, reps, single, val, start, L = 20):
         v_aDensity = np.zeros(reps)
         errorReps = np.zeros(reps)
         for k in range(reps):
-            v_aReps = np.zeros(tau*10)
+            v_aReps = np.zeros(tau*20)
             #Initialization of one System with the i-th rho
             vi = Vicsek(N, L, eta, False)
             #n timesteps of the simulation
@@ -207,7 +212,7 @@ def vaOfRho(tau, eta, reps, single, val, start, L = 20):
                 x_ip1, theta_ip1, v_ip1 = numbaUpdate(vi.N, vi.varT, L, vi.x_i, vi.v_i, vi.theta_i, vi.eta)
                 vi.x_i, vi.theta_i, vi.v_i = x_ip1, theta_ip1, v_ip1
             #After start ts v_a is calculated after every ts 
-            for j in range(tau*10):
+            for j in range(tau*20):
                 x_ip1, theta_ip1, v_ip1 = numbaUpdate(vi.N, vi.varT, vi.L, vi.x_i, vi.v_i, vi.theta_i, vi.eta)
                 vi.x_i, vi.theta_i, vi.v_i = x_ip1, theta_ip1, v_ip1
                 v_aReps[j] = calculateVa(N, vi.v_i, vi.varT)
@@ -248,6 +253,7 @@ def vaOfT(steps, eta, L, N, name):
                 eta (double) - noise of the system
                 L (double) - length of the box
                 N (int) - number of particles in the system
+                name (string) - name of the .csv file where the data is stored
         Return: v_a (array) -  calculated v_a's for each timestep"""
     v_a = np.zeros(steps)
     t = np.arange(0,steps,1)
